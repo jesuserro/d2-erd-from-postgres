@@ -17,12 +17,10 @@ async function getSchema() {
   await client.end();
 
   return res.rows.map((result) => ({
-    ...result,
-    // postgres sometimes returns [null] for some reason
-    foreign_relations: result.foreign_relations.filter(
-      (relation) => !!relation
-    ),
+  ...result,
+  foreign_relations: (result.foreign_relations || []).filter((relation) => !!relation),
   }));
+
 }
 
 async function main() {

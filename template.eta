@@ -1,16 +1,27 @@
 <% it.schema.forEach(function(table) { %>
 
-<%= table.table_name %>: {
+"<%= table.table_schema %>.<%= table.table_name %>": {
   shape: sql_table
-  <% table.columns.forEach(function(column) { %>
-  <%= column.column_name %>: <%= column.data_type %> <% if (column.is_fk) { %>{constraint: foreign_key}<% } %> <% if (column.column_name === table.primary_key) { %>{constraint: primary_key}<% } %> 
 
+  <% table.columns.forEach(function(column) { 
+       const isPk = (column.column_name === table.primary_key);
+       const isFk = !!column.is_fk;
+       let constraint = "";
+       if (isPk) constraint = "primary_key";
+       else if (isFk) constraint = "foreign_key";
+  %>
+  "<%= column.column_name %>": {
+    label: "<%= column.data_type %>"
+    <% if (constraint) { %>constraint: <%= constraint %><% } %>
+  }
   <% }) %>
 }
 
-<% table.foreign_relations.forEach(function(fk) { %>
-<%= fk.table_name %>.<%= fk.column_name %> -> <%= fk.foreign_table_name %>.<%= fk.foreign_column_name %>
-
+<%
+  const fks = Array.isArray(table.foreign_relations) ? table.foreign_relations : [];
+  fks.forEach(function(fk) {
+%>
+"<%= fk.table_schema %>.<%= fk.table_name %>"."<%= fk.column_name %>" -> "<%= fk.foreign_table_schema %>.<%= fk.foreign_table_name %>"."<%= fk.foreign_column_name %>"
 <% }) %>
 
 <% }) %>
