@@ -1,27 +1,47 @@
-<% it.schema.forEach(function(table) { %>
+<%
+// agrupar tablas por schema
+const tablesBySchema = {};
+it.schema.forEach(t => {
+  const s = t.table_schema;
+  if (!tablesBySchema[s]) tablesBySchema[s] = [];
+  tablesBySchema[s].push(t);
+});
 
-"<%= table.table_schema %>.<%= table.table_name %>": {
-  shape: sql_table
+const schemas = Object.keys(tablesBySchema).sort();
+%>
 
-  <% table.columns.forEach(function(column) { 
-       const isPk = (column.column_name === table.primary_key);
-       const isFk = !!column.is_fk;
-       let constraint = "";
-       if (isPk) constraint = "primary_key";
-       else if (isFk) constraint = "foreign_key";
-  %>
-  "<%= column.column_name %>": {
-    label: "<%= column.data_type %>"
-    <% if (constraint) { %>constraint: <%= constraint %><% } %>
+<% schemas.forEach(function(schemaName) { %>
+"<%= schemaName %>": {
+  shape: package
+  label: "<%= schemaName %>"
+
+  <% tablesBySchema[schemaName].forEach(function(table) { %>
+  "<%= table.table_name %>": {
+    shape: sql_table
+
+    <% table.columns.forEach(function(column) {
+         const isPk = (column.column_name === table.primary_key);
+         const isFk = !!column.is_fk;
+         let constraint = "";
+         if (isPk) constraint = "primary_key";
+         else if (isFk) constraint = "foreign_key";
+    %>
+    "<%= column.column_name %>": {
+      label: "<%= column.data_type %>"
+      <% if (constraint) { %>constraint: <%= constraint %><% } %>
+    }
+    <% }) %>
   }
   <% }) %>
 }
+<% }) %>
 
 <%
+// relaciones FK (fuera o dentro da igual, pero fuera suele ser más claro)
+it.schema.forEach(function(table) {
   const fks = Array.isArray(table.foreign_relations) ? table.foreign_relations : [];
   fks.forEach(function(fk) {
 %>
-"<%= fk.table_schema %>.<%= fk.table_name %>"."<%= fk.column_name %>" -> "<%= fk.foreign_table_schema %>.<%= fk.foreign_table_name %>"."<%= fk.foreign_column_name %>"
-<% }) %>
+"<%= fk.table_schema %>"."<%= fk.table_name %>"."<%= fk.column_name %>" -> "<%= fk.foreign_table_schema %>"."<%= fk.foreign_table_name %>"."<%= fk.foreign_column_name %>"
+<% }) }) %>
 
-<% }) %>
